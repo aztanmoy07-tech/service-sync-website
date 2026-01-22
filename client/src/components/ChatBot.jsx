@@ -1,95 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { Send, X, MessageSquare } from 'lucide-react';
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'bot', text: 'Hi! I am your Survey Sync assistant. Ask me about services, emergency contacts, or navigation!' }
+    { text: "Hi! I'm your Service Sync assistant. How can I help you find a service today?", isBot: true }
   ]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef(null);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  // ✅ Backend URL (Verified)
+  const API_URL = 'https://service-sync-website.onrender.com';
 
-  const handleSend = async () => {
+  const toggleChat = () => setIsOpen(!isOpen);
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
     if (!input.trim()) return;
 
-    const userMessage = { role: 'user', text: input };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    const userMsg = { text: input, isBot: false };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
     setLoading(true);
 
     try {
-      // Pointing to your new backend route
-      const response = await axios.post('https://service-sync-website.onrender.com/api/chat', { 
-        message: input 
-      });
-
-      // Match the "reply" key from your server.js
-      const botMessage = { role: 'bot', text: response.data.reply };
-      setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'bot', text: "I'm having trouble connecting right now. Try again later." }]);
+      // ✅ Added Headers for Stability
+      const res = await axios.post(
+        `${API_URL}/api/chat`, 
+        { message: input },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      
+      const botMsg = { text: res.data.reply, isBot: true };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      console.error("Chatbot Error:", err); // ✅ Log error for debugging
+      let errorText = "Sorry, I can't connect right now.";
+      
+      // Check if it's a backend configuration issue (Missing API Key)
+      if(err.response && err.response.status === 500) {
+         errorText = "My brain (API Key) is missing on the server!";
+      }
+      
+      setMessages((prev) => [...prev, { text: errorText, isBot: true }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      {!isOpen ? (
-        <button onClick={() => setIsOpen(true)} className="bg-blue-600 p-4 rounded-full shadow-lg text-white hover:bg-blue-700 transition">
-          <MessageSquare size={24} />
-        </button>
-      ) : (
-        <div className="bg-zinc-900 w-[400px] h-[600px] rounded-2xl shadow-2xl flex flex-col border border-zinc-700 overflow-hidden">
-          {/* Header */}
-          <div className="bg-zinc-800 p-4 flex justify-between items-center border-b border-zinc-700">
-            <h3 className="text-white font-bold flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Survey Assistant
-            </h3>
-            <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-white">
-              <X size={20} />
-            </button>
+    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+      {isOpen && (
+        <div className="bg-white width-80 sm:w-96 h-96 rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-fade-in-up">
+          <div className="bg-blue-600 p-4 flex justify-between items-center">
+            <h3 className="text-white font-bold">Service Sync Bot 🤖</h3>
+            <button onClick={toggleChat} className="text-white hover:text-gray-200">✕</button>
           </div>
-
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-xl text-white ${
-                  msg.role === 'user' ? 'bg-blue-600' : 'bg-zinc-800 border border-zinc-700'
-                }`}>
+          
+          <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-3">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
+                <div className={`max-w-[80%] p-3 rounded-xl text-sm ${msg.isBot ? 'bg-white border border-gray-200 text-gray-700' : 'bg-blue-600 text-white'}`}>
                   {msg.text}
                 </div>
               </div>
             ))}
-            {loading && <div className="text-zinc-400 text-sm animate-pulse ml-2">Assistant is thinking...</div>}
-            <div ref={chatEndRef} />
+            {loading && <div className="text-gray-400 text-xs ml-2">Bot is typing...</div>}
           </div>
 
-          {/* Input Area */}
-          <div className="p-4 bg-zinc-800 border-t border-zinc-700 flex gap-2">
-            <input
-              type="text"
+          <form onSubmit={sendMessage} className="p-3 bg-white border-t border-gray-100 flex gap-2">
+            <input 
+              className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ask me anything..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask for help..."
-              className="flex-1 bg-zinc-700 text-white p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button onClick={handleSend} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
-              <Send size={20} />
-            </button>
-          </div>
+            <button type="submit" className="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-700 transition">➤</button>
+          </form>
         </div>
       )}
+
+      <button 
+        onClick={toggleChat}
+        className="bg-black hover:bg-gray-800 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110 flex items-center justify-center"
+      >
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+      </button>
     </div>
   );
 };
