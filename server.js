@@ -22,7 +22,7 @@ app.use(express.json());
 
 // FIXED: Removed trailing slash from Vercel URL to prevent CORS mismatches
 app.use(cors({ 
-    origin: ['https://service-sync-website.vercel.app', 'http://localhost:5173'],
+    origin: ['https://service-sync-website.vercel.app'],
     credentials: true 
 }));
 
