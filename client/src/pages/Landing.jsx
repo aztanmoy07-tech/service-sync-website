@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import ServiceCard from '../components/ServiceCard'; 
 
-const Home = () => {
+const Landing = () => {
   const [services, setServices] = useState([]);
   const [category, setCategory] = useState('All');
   const [loading, setLoading] = useState(true);
@@ -92,4 +92,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Landing;

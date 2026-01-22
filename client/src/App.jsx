@@ -1,26 +1,26 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Import Pages
-import Home from './pages/Home';        // ✅ Replaces 'Dashboard'
+// ✅ IMPORT THE NEW FILE NAME
+import Landing from './pages/Landing'; 
+
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AddService from './pages/AddService';
+import DeveloperPanel from './pages/DeveloperPanel'; // ensuring this is here if you need it
 
 function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50"> 
         <Routes>
-          {/* Main Feed / Home Page (Where services are listed) */}
-          <Route path="/" element={<Home />} />
+          {/* ✅ USE THE NEW COMPONENT */}
+          <Route path="/" element={<Landing />} />
           
-          {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          
-          {/* Protected Business Route */}
           <Route path="/add-service" element={<AddService />} />
+          <Route path="/dev" element={<DeveloperPanel />} />
         </Routes>
       </div>
     </Router>
