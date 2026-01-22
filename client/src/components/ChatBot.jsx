@@ -26,7 +26,7 @@ const ChatBot = () => {
 
     try {
       // Pointing to your new backend route
-      const response = await axios.post('https://service-sync-website.onrender.com', { 
+      const response = await axios.post('https://service-sync-website.onrender.com/api/chat', { 
         message: input 
       });
 
