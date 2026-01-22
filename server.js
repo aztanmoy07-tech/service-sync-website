@@ -230,7 +230,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 // --- NEW SURVEY ASSISTANT CHAT ROUTE ---
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     try {
         if (!message) return res.status(400).json({ error: "Message is required" });
         
