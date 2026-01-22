@@ -3,7 +3,6 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import ServiceCard from '../components/ServiceCard'; 
 
-// ✅ Built-in Icons (Ensures they load even if external libs fail)
 const Icons = {
   Search: () => <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>,
   Plus: () => <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>,
@@ -21,7 +20,7 @@ const Main = () => {
   const [category, setCategory] = useState('All');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [location, setLocation] = useState({ lat: 26.1833, lng: 91.7333 });
+  const [location, setLocation] = useState({ lat: 26.1833, lng: 91.7333 }); 
   const navigate = useNavigate();
   
   const token = localStorage.getItem('token');
@@ -31,21 +30,22 @@ const Main = () => {
   const API_URL = 'https://service-sync-website.onrender.com';
 
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/services`);
-        setServices(res.data);
-        setFilteredServices(res.data);
-      } catch (err) { console.error("Data fetch failed:", err); } 
-      finally { setLoading(false); }
-    };
-    fetchServices();
-    
+    // ✅ GPS Integration
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       });
     }
+
+    const fetchServices = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/services`);
+        setServices(res.data);
+        setFilteredServices(res.data);
+      } catch (err) { console.error(err); } 
+      finally { setLoading(false); }
+    };
+    fetchServices();
   }, []);
 
   useEffect(() => {
@@ -70,7 +70,6 @@ const Main = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      {/* --- NAVBAR (Always Visible) --- */}
       <nav className="flex justify-between items-center px-8 py-4 bg-white sticky top-0 z-50 border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-2">
            <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-xl">S</div>
@@ -91,7 +90,7 @@ const Main = () => {
         </div>
       </nav>
 
-      {/* --- BROAD DASHBOARD CONTENT --- */}
+      {/* ✅ BROADENED DASHBOARD (max-w-[95%]) */}
       <div className="container mx-auto px-6 max-w-[95%]">
         <div className="py-14 text-center space-y-4">
             <h1 className="text-5xl font-black text-gray-900 tracking-tighter">Find Services <span className="text-blue-600">Near You</span></h1>
@@ -113,7 +112,7 @@ const Main = () => {
             </div>
         </div>
 
-        {/* --- CATEGORY GRID (Always Visible) --- */}
+        {/* Categories Grid */}
         <div className="mb-16">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                {categories.map((cat) => (
@@ -130,12 +129,19 @@ const Main = () => {
             </div>
         </div>
 
-        {/* --- RESULTS AREA --- */}
+        {/* Results / Map Section */}
         <div className="pb-32">
             <h2 className="text-3xl font-black text-gray-900 mb-8">{category === 'map' ? 'Live Navigation' : 'Results'}</h2>
             {category === 'map' ? (
                 <div className="w-full h-[600px] bg-white rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
-                  <iframe width="100%" height="100%" frameBorder="0" src={`https://www.google.com/maps/embed/v1/place?key=API_KEY&q=Guwahati3{location.lat},${location.lng}&output=embed`} title="Map"></iframe>
+                  {/* ✅ Corrected HTTPS Map URL */}
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    src={`https://www.google.com/maps/embed/v1/place?key=API_KEY&q=Guwahati6{location.lat},${location.lng}&z=15&output=embed`}
+                    title="Live GPS Map"
+                  ></iframe>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
