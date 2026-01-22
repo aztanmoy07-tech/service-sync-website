@@ -11,9 +11,8 @@ export default function DeveloperPanel() {
   const [editForm, setEditForm] = useState({});
   const navigate = useNavigate();
 
-  // ✅ 1. DEFINE YOUR BACKEND URL HERE
+  // ✅ Backend URL
   const API_URL = 'https://service-sync-website.onrender.com';
-
   const token = localStorage.getItem('token');
   const config = { headers: { 'x-auth-token': token } };
 
@@ -22,22 +21,17 @@ export default function DeveloperPanel() {
   const fetchData = async () => {
     try {
       if (activeTab === 'services') {
-        // ✅ Updated with API_URL
         const res = await axios.get(`${API_URL}/api/services`);
         setServices(res.data);
       } else {
-        // ✅ Updated with API_URL
         const res = await axios.get(`${API_URL}/api/users`, config);
         setUsers(res.data);
       }
-    } catch (err) { 
-      if(err.response && err.response.status === 401) navigate('/login'); 
-    }
+    } catch (err) { if(err.response && err.response.status === 401) navigate('/login'); }
   };
 
   const handleDeleteService = async (id) => {
     if (confirm('Delete this service?')) {
-      // ✅ Updated with API_URL
       await axios.delete(`${API_URL}/api/services/${id}`, config);
       fetchData();
     }
@@ -45,7 +39,6 @@ export default function DeveloperPanel() {
 
   const handleDeleteUser = async (id) => {
     if (confirm('Ban this user?')) {
-      // ✅ Updated with API_URL
       await axios.delete(`${API_URL}/api/users/${id}`, config);
       fetchData();
     }
@@ -53,10 +46,8 @@ export default function DeveloperPanel() {
 
   const startEdit = (service) => { setEditingId(service._id); setEditForm(service); };
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
-  
   const saveEdit = async () => {
     try {
-      // ✅ Updated with API_URL
       await axios.put(`${API_URL}/api/services/${editingId}`, editForm, config);
       setEditingId(null);
       fetchData();
