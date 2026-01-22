@@ -132,4 +132,37 @@ app.post('/api/chat', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+// --- DELETE SERVICE ROUTE (Developer & Owner Only) ---
+app.delete('/api/services/:id', async (req, res) => {
+    const token = req.header('x-auth-token');
+    
+    // 1. Check if token exists
+    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+
+    try {
+        // 2. Verify Token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // 3. Find the Service
+        const service = await Service.findById(req.params.id);
+        if (!service) return res.status(404).json({ msg: 'Service not found' });
+
+        // 4. ROLE CHECK: Only allow if user is a Developer OR the Owner
+        // We check decoded.role which is set during login/signup based on your ALLOWED_DEVS list
+        const isDev = decoded.role === 'developer';
+        const isOwner = service.owner && service.owner.toString() === decoded.id;
+
+        if (!isDev && !isOwner) {
+            return res.status(403).json({ msg: 'Not authorized to delete this service' });
+        }
+
+        // 5. Perform Delete
+        await Service.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Service removed successfully' });
+
+    } catch (err) {
+        console.error("Delete Error:", err.message);
+        res.status(500).send('Server Error');
+    }
+});
 app.listen(PORT, () => console.log(`🚀 Service Sync Backend running on port ${PORT}`));
