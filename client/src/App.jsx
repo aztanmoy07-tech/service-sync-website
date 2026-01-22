@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// ✅ IMPORT THE NEW FILE
-import ServiceFeed from './pages/ServiceFeed'; 
+// ✅ WE ARE IMPORTING MAIN NOW (NOT HOME)
+import Main from './pages/Main'; 
 
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -14,8 +14,8 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50"> 
         <Routes>
-          {/* ✅ USE THE NEW COMPONENT */}
-          <Route path="/" element={<ServiceFeed />} />
+          {/* ✅ USING MAIN COMPONENT */}
+          <Route path="/" element={<Main />} />
           
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />

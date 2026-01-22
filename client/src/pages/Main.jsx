@@ -1,33 +1,26 @@
-// File: client/src/pages/ServiceFeed.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import ServiceCard from '../components/ServiceCard'; 
 
-const ServiceFeed = () => {
+const Main = () => {
   const [services, setServices] = useState([]);
   const [category, setCategory] = useState('All');
   const [loading, setLoading] = useState(true);
-
-  // ✅ Your Correct Backend URL
+  
+  // ✅ Backend URL
   const API_URL = 'https://service-sync-website.onrender.com';
-
   const categories = ['All', 'Food', 'Transport', 'Utilities', 'Cleaning', 'Others'];
 
   const fetchServices = async () => {
     setLoading(true);
     try {
       let url = `${API_URL}/api/services`;
-      if (category !== 'All') {
-        url = `${API_URL}/api/services?category=${category}`;
-      }
+      if (category !== 'All') url = `${API_URL}/api/services?category=${category}`;
       const res = await axios.get(url);
       setServices(res.data);
-    } catch (err) {
-      console.error("Error fetching services:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchServices(); }, [category]); 
@@ -38,29 +31,17 @@ const ServiceFeed = () => {
         <h1 className="text-3xl font-bold text-gray-800">Available Services</h1>
         <Link to="/add-service" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">+ Add Service</Link>
       </div>
-
       <div className="flex flex-wrap gap-4 mb-8">
         {categories.map((cat) => (
-          <button key={cat} onClick={() => setCategory(cat)} className={`px-4 py-2 rounded-full font-semibold transition-colors duration-200 border ${category === cat ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'}`}>{cat}</button>
+          <button key={cat} onClick={() => setCategory(cat)} className={`px-4 py-2 rounded-full font-semibold border ${category === cat ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}>{cat}</button>
         ))}
       </div>
-
-      {loading ? (
-        <p className="text-center text-gray-500">Loading services...</p>
-      ) : (
+      {loading ? <p>Loading...</p> : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.length > 0 ? (
-            services.map((service) => <ServiceCard key={service._id} service={service} />)
-          ) : (
-            <div className="col-span-full text-center py-10">
-              <p className="text-xl text-gray-500">No services found in "{category}"</p>
-              <button onClick={() => setCategory('All')} className="text-blue-500 underline mt-2">View All Services</button>
-            </div>
-          )}
+          {services.map((service) => <ServiceCard key={service._id} service={service} />)}
         </div>
       )}
     </div>
   );
 };
-
-export default ServiceFeed;
+export default Main;
