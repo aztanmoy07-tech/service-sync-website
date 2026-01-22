@@ -11,7 +11,7 @@ export default function AddService() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await axios.post('/api/services', form, { headers: { 'x-auth-token': token } });
+      await axios.post('https://service-sync-website.onrender.com/api/services', form, { headers: { 'x-auth-token': token } });
       alert("Service Added Successfully!");
       navigate('/');
     } catch (err) {
