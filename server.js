@@ -130,20 +130,40 @@ app.post('/api/services', async (req, res) => {
 });
 
 // ✅ CHAT ROUTE
+// ✅ UPDATED CHAT ROUTE
 app.post('/api/chat', async (req, res) => {
-    const { message } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     try {
-        if (!message) return res.status(400).json({ error: "Message is required" });
-        const prompt = `You are the Service Sync AI assistant. Help with local services in Guwahati/Athgaon. User: ${message}`;
+        const { message } = req.body;
+        
+        // 1. Check if API Key exists
+        if (!process.env.GEMINI_API_KEY) {
+            console.error("❌ ERROR: GEMINI_API_KEY is missing from Render Environment!");
+            return res.status(500).json({ error: "Server Configuration Error" });
+        }
+
+        // 2. Initialize Model inside the route for stability
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        if (!message) return res.status(400).json({ error: "No message provided" });
+
+        const prompt = `You are the Service Sync AI for Guwahati. Help the user: ${message}`;
+        
+        // 3. Generate Content
         const result = await model.generateContent(prompt);
-        res.json({ reply: result.response.text() });
+        const response = await result.response;
+        const text = response.text();
+
+        res.json({ reply: text });
+
     } catch (err) {
-        console.error("Chat Error:", err);
-        res.status(500).json({ error: "Chatbot connection error" });
+        // This will show up in your Render "Logs" tab
+        console.error("Detailed Gemini Error:", err);
+        res.status(500).json({ 
+            error: "AI Generation Failed", 
+            details: err.message 
+        });
     }
 });
-
 // --- DELETE SERVICE ---
 app.delete('/api/services/:id', async (req, res) => {
     const token = req.header('x-auth-token');

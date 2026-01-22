@@ -53,11 +53,14 @@ const ChatBot = () => {
 
       <div className="h-[400px] overflow-y-auto p-4 flex flex-col gap-4 bg-gray-50">
         {messages.map((msg, i) => (
-          <div key={i} className={`max-w-[80%] p-3 rounded-2xl text-sm font-bold shadow-sm ${
-            msg.isBot ? 'bg-white text-gray-800 self-start' : 'bg-blue-600 text-white self-end'
-          }`}>
-            {msg.text}
-          </div>
+          // Find this line in your ChatBot.jsx map function
+<div key={i} className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
+  msg.isBot 
+    ? 'bg-white text-black font-semibold self-start' // 👈 text-black added
+    : 'bg-blue-600 text-white font-bold self-end'
+}`}>
+  {msg.text}
+</div>
         ))}
         {isTyping && <div className="text-xs text-gray-400 font-bold italic animate-pulse">AI is thinking...</div>}
       </div>
