@@ -10,7 +10,7 @@ export default function Signup() {
     e.preventDefault();
     try {
       const payload = { ...form, role: form.isBusiness ? 'business' : 'user' };
-      const res = await axios.post('/api/signup', payload);
+      const res = await axios.post('https://service-sync-website.onrender.com/api/signup', payload);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', res.data.role);
       navigate(res.data.role === 'business' ? '/business-dashboard' : '/');
