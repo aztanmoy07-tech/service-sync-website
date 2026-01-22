@@ -1,8 +1,8 @@
-iimport React from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // ✅ IMPORT THE NEW FILE
-import Landing from './pages/Landing'; 
+import ServiceFeed from './pages/ServiceFeed'; 
 
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -14,8 +14,8 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50"> 
         <Routes>
-          {/* ✅ USE LANDING COMPONENT */}
-          <Route path="/" element={<Landing />} />
+          {/* ✅ USE THE NEW COMPONENT */}
+          <Route path="/" element={<ServiceFeed />} />
           
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
