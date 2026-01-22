@@ -17,11 +17,11 @@ const Home = () => {
     setLoading(true);
     try {
       // 1. Base URL for your live server
-      let url = 'https://service-sync-backend.onrender.com/api/services';
+      let url = 'https://service-sync-website.onrender.com/api/services';
       
       // 2. Add category filter if not "All"
       if (category !== 'All') {
-        url = `https://service-sync-backend.onrender.com/api/services?category=${category}`;
+        url = `https://service-sync-website.onrender.com/api/services?category=${category}`;
       }
 
       const res = await axios.get(url);

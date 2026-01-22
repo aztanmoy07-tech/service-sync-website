@@ -10,6 +10,10 @@ export default function DeveloperPanel() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const navigate = useNavigate();
+
+  // ✅ 1. DEFINE YOUR BACKEND URL HERE
+  const API_URL = 'https://service-sync-website.onrender.com';
+
   const token = localStorage.getItem('token');
   const config = { headers: { 'x-auth-token': token } };
 
@@ -18,34 +22,42 @@ export default function DeveloperPanel() {
   const fetchData = async () => {
     try {
       if (activeTab === 'services') {
-        const res = await axios.get('/api/services');
+        // ✅ Updated with API_URL
+        const res = await axios.get(`${API_URL}/api/services`);
         setServices(res.data);
       } else {
-        const res = await axios.get('/api/users', config);
+        // ✅ Updated with API_URL
+        const res = await axios.get(`${API_URL}/api/users`, config);
         setUsers(res.data);
       }
-    } catch (err) { if(err.response && err.response.status === 401) navigate('/login'); }
+    } catch (err) { 
+      if(err.response && err.response.status === 401) navigate('/login'); 
+    }
   };
 
   const handleDeleteService = async (id) => {
     if (confirm('Delete this service?')) {
-      await axios.delete(`/api/services/${id}`, config);
+      // ✅ Updated with API_URL
+      await axios.delete(`${API_URL}/api/services/${id}`, config);
       fetchData();
     }
   };
 
   const handleDeleteUser = async (id) => {
     if (confirm('Ban this user?')) {
-      await axios.delete(`/api/users/${id}`, config);
+      // ✅ Updated with API_URL
+      await axios.delete(`${API_URL}/api/users/${id}`, config);
       fetchData();
     }
   };
 
   const startEdit = (service) => { setEditingId(service._id); setEditForm(service); };
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
+  
   const saveEdit = async () => {
     try {
-      await axios.put(`/api/services/${editingId}`, editForm, config);
+      // ✅ Updated with API_URL
+      await axios.put(`${API_URL}/api/services/${editingId}`, editForm, config);
       setEditingId(null);
       fetchData();
     } catch (err) { alert('Update failed'); }
@@ -79,10 +91,7 @@ export default function DeveloperPanel() {
                   <input className="bg-gray-900 border border-gray-600 p-2 rounded text-white" value={editForm.name} onChange={e=>setEditForm({...editForm, name: e.target.value})} />
                   <input className="bg-gray-900 border border-gray-600 p-2 rounded text-white" value={editForm.contact} onChange={e=>setEditForm({...editForm, contact: e.target.value})} />
                   <input className="bg-gray-900 border border-gray-600 p-2 rounded text-white" value={editForm.category} onChange={e=>setEditForm({...editForm, category: e.target.value})} />
-                  
-                  {/* PRICE EDIT FIELD */}
                   <input type="number" className="bg-gray-900 border border-gray-600 p-2 rounded text-white" placeholder="Price" value={editForm.price} onChange={e=>setEditForm({...editForm, price: Number(e.target.value)})} />
-                  
                   <input className="bg-gray-900 border border-gray-600 p-2 rounded text-white" value={editForm.location?.address} onChange={e=>setEditForm({...editForm, location: {...editForm.location, address: e.target.value}})} />
                 </div>
               ) : (
