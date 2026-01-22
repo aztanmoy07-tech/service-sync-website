@@ -26,7 +26,7 @@ const ChatBot = () => {
 
     try {
       // Pointing to your new backend route
-      const response = await axios.post('https://service-sync-website.vercel.app/api/chat', { 
+      const response = await axios.post('https://service-sync-website.onrender.com', { 
         message: input 
       });
 
