@@ -6,6 +6,10 @@ export default function BusinessDashboard() {
   const [services, setServices] = useState([]);
   const [form, setForm] = useState({ name: '', category: 'shop', contact: '', price: '', lat: '', lng: '', address: '' });
   const navigate = useNavigate();
+  
+  // ✅ 1. DEFINE YOUR BACKEND URL
+  const API_URL = 'https://service-sync-website.onrender.com';
+
   const token = localStorage.getItem('token');
   const config = { headers: { 'x-auth-token': token } };
 
@@ -13,7 +17,8 @@ export default function BusinessDashboard() {
 
   const fetchServices = async () => {
     try {
-      const res = await axios.get('/api/my-services', config);
+      // ✅ Updated GET request
+      const res = await axios.get(`${API_URL}/api/my-services`, config);
       setServices(res.data);
     } catch (err) { console.error(err); }
   };
@@ -26,7 +31,8 @@ export default function BusinessDashboard() {
       location: { lat: Number(form.lat), lng: Number(form.lng), address: form.address } 
     };
     try {
-      await axios.post('/api/services', payload, config);
+      // ✅ Updated POST request
+      await axios.post(`${API_URL}/api/services`, payload, config);
       setForm({ name: '', category: 'shop', contact: '', price: '', lat: '', lng: '', address: '' });
       fetchServices();
       alert("Business Added Successfully!");
@@ -35,7 +41,8 @@ export default function BusinessDashboard() {
 
   const deleteService = async (id) => {
     if (confirm("Delete this business?")) {
-      await axios.delete(`/api/services/${id}`, config);
+      // ✅ Updated DELETE request
+      await axios.delete(`${API_URL}/api/services/${id}`, config);
       fetchServices();
     }
   };
