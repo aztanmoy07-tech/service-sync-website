@@ -1,101 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { Send, X, MessageSquare } from 'lucide-react';
 
-export default function ChatBot() {
+const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'system', content: 'Hi! I am your Survey Sync assistant. Ask me about services, emergency contacts, or navigation!' }
+    { role: 'bot', text: 'Hi! I am your Survey Sync assistant. Ask me about services, emergency contacts, or navigation!' }
   ]);
-  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    const userMsg = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMsg]);
-    setInput("");
+
+    const userMessage = { role: 'user', text: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
     setLoading(true);
 
     try {
-      // Replace with your actual API endpoint or mock logic
-      const res = await axios.post('/api/chat', { message: input });
-      setMessages(prev => [...prev, { role: 'bot', content: res.data.reply }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { role: 'bot', content: "I'm having trouble connecting right now. Try again later." }]);
+      // Pointing to your new backend route
+      const response = await axios.post('https://service-sync-website.vercel.app/api/chat', { 
+        message: input 
+      });
+
+      // Match the "reply" key from your server.js
+      const botMessage = { role: 'bot', text: response.data.reply };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'bot', text: "I'm having trouble connecting right now. Try again later." }]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      {/* CHAT WINDOW */}
-      {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden mb-4 transition-all duration-300"
-             // SIZE INCREASED HERE: 
-             // w-[400px] -> Wider
-             // h-[600px] -> Taller (Covers more vertical gap)
-             // max-h-[80vh] -> Ensures it fits on smaller laptop screens without cutting off
-             style={{ width: '400px', height: '600px', maxHeight: '80vh' }}
-        >
+    <div className="fixed bottom-6 right-6 z-50">
+      {!isOpen ? (
+        <button onClick={() => setIsOpen(true)} className="bg-blue-600 p-4 rounded-full shadow-lg text-white hover:bg-blue-700 transition">
+          <MessageSquare size={24} />
+        </button>
+      ) : (
+        <div className="bg-zinc-900 w-[400px] h-[600px] rounded-2xl shadow-2xl flex flex-col border border-zinc-700 overflow-hidden">
           {/* Header */}
-          <div className="bg-black text-white p-4 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <h3 className="font-bold text-lg">Survey Assistant</h3>
-            </div>
-            <button onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white text-xl font-bold">×</button>
+          <div className="bg-zinc-800 p-4 flex justify-between items-center border-b border-zinc-700">
+            <h3 className="text-white font-bold flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Survey Assistant
+            </h3>
+            <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-white">
+              <X size={20} />
+            </button>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-3">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-xl text-sm font-medium ${
-                  m.role === 'user' 
-                    ? 'bg-black text-white rounded-br-none' 
-                    : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-3 rounded-xl text-white ${
+                  msg.role === 'user' ? 'bg-blue-600' : 'bg-zinc-800 border border-zinc-700'
                 }`}>
-                  {m.content}
+                  {msg.text}
                 </div>
               </div>
             ))}
-            {loading && <div className="text-xs text-gray-400 italic ml-2">Typing...</div>}
+            {loading && <div className="text-zinc-400 text-sm animate-pulse ml-2">Assistant is thinking...</div>}
+            <div ref={chatEndRef} />
           </div>
 
           {/* Input Area */}
-          <div className="p-3 bg-white border-t border-gray-100">
-            <div className="flex gap-2">
-              <input 
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition"
-                placeholder="Ask for help..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              />
-              <button 
-                onClick={handleSend}
-                className="bg-black text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition"
-              >
-                Send
-              </button>
-            </div>
+          <div className="p-4 bg-zinc-800 border-t border-zinc-700 flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask for help..."
+              className="flex-1 bg-zinc-700 text-white p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button onClick={handleSend} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
+              <Send size={20} />
+            </button>
           </div>
         </div>
       )}
-
-      {/* TOGGLE BUTTON */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-black hover:bg-gray-800 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-105"
-      >
-        {isOpen ? (
-          <span className="text-2xl font-bold">×</span>
-        ) : (
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-        )}
-      </button>
     </div>
   );
-}
+};
+
+export default ChatBot;
