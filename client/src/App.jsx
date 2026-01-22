@@ -1,14 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// ✅ Pages
 import Main from './pages/Main'; 
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AddService from './pages/AddService';
 import DeveloperPanel from './pages/DeveloperPanel';
 
-// ✅ RESTORE CHATBOT
+// ✅ CORRECT IMPORT: ChatBot (Capital B)
 import ChatBot from './components/ChatBot'; 
 
 function App() {
@@ -23,7 +22,7 @@ function App() {
           <Route path="/dev" element={<DeveloperPanel />} />
         </Routes>
 
-        {/* ✅ CHATBOT IS BACK */}
+        {/* ✅ CORRECT COMPONENT */}
         <ChatBot />
       </div>
     </Router>
