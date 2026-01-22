@@ -181,6 +181,28 @@ app.delete('/api/services/:id', async (req, res) => {
         await Service.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Service deleted' });
     } catch (err) { res.status(500).send('Server Error'); }
+});// ✅ ADMIN PASSWORD RESET ROUTE
+app.put('/api/users/reset-password', async (req, res) => {
+    const { email, newPassword } = req.body;
+    const token = req.header('x-auth-token');
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // Only you (Tanmoy) or other devs can do this
+        if (decoded.role !== 'developer') {
+            return res.status(403).json({ msg: "Only developers can reset passwords" });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await User.findOneAndUpdate({ email: email }, { password: hashedPassword });
+        
+        res.json({ msg: `Password updated for ${email}` });
+    } catch (err) {
+        res.status(500).send("Server Error");
+    }
 });
 
 // --- DELETE USER ---
@@ -206,6 +228,7 @@ setInterval(async () => {
         console.error("❌ Auto-Wake Fail:", err.message);
     }
 }, 840000); // 14 minutes
+
 
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
