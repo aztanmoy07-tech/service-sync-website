@@ -1,27 +1,29 @@
-// File: client/src/pages/Home.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import ServiceCard from '../components/ServiceCard'; // Adjust path if ServiceCard is in specific folder
+import ServiceCard from '../components/ServiceCard'; 
 
 const Home = () => {
   const [services, setServices] = useState([]);
   const [category, setCategory] = useState('All');
   const [loading, setLoading] = useState(true);
 
-  // Categories - Make sure these match what you use in "Add Service"
+  // ✅ 1. DEFINE YOUR BACKEND URL HERE
+  const API_URL = 'https://service-sync-website.onrender.com';
+
+  // Categories
   const categories = ['All', 'Food', 'Transport', 'Utilities', 'Cleaning', 'Others'];
 
   // ✅ Fetch Services (Auto-runs when category changes)
   const fetchServices = async () => {
     setLoading(true);
     try {
-      // 1. Base URL for your live server
-      let url = 'https://service-sync-website.onrender.com/api/services';
+      // 2. Use the API_URL variable
+      let url = `${API_URL}/api/services`;
       
-      // 2. Add category filter if not "All"
+      // 3. Add category filter if not "All"
       if (category !== 'All') {
-        url = `https://service-sync-website.onrender.com/api/services?category=${category}`;
+        url = `${API_URL}/api/services?category=${category}`;
       }
 
       const res = await axios.get(url);
