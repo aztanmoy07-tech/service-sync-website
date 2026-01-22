@@ -18,21 +18,34 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 app.use(express.json());
 
-// ✅ CUMULATIVE UPDATE: Broadened CORS to fix "Trouble Reaching Server" error
+// ✅ 1. IMPROVED CORS CONFIGURATION
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://service-sync-website.vercel.app',
+    'https://service-sync-website-cgtp94m3q-aztanmoy07-techs-projects.vercel.app'
+];
+
 app.use(cors({ 
-    origin: [
-        'http://localhost:5173',
-        'https://service-sync-website.vercel.app',
-        'https://service-sync-website-cgtp94m3q-aztanmoy07-techs-projects.vercel.app' // Your specific build
-    ],
+    origin: function (origin, callback) {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            return callback(new Error('CORS Policy Error: Origin not allowed'), false);
+        }
+        return callback(null, true);
+    },
     credentials: true 
 }));
+
+// ✅ 2. FIX: HANDLE CORS PRE-FLIGHT (OPTIONS)
+// This answers the browser's "is it okay to talk to you?" request immediately.
+app.options('*', cors()); 
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.log('❌ DB Error:', err));
 
-// --- SCHEMAS (Includes All Updates) ---
+// --- SCHEMAS ---
 const UserSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
@@ -46,8 +59,8 @@ const ServiceSchema = new mongoose.Schema({
     name: String,
     category: String,
     contact: String,
-    description: String, // ✅ PRESERVED: From description update
-    isVerified: { type: Boolean, default: false }, // ✅ PRESERVED: For Verification Badge
+    description: String,
+    isVerified: { type: Boolean, default: false },
     price: { type: Number, default: 99 },
     location: { lat: Number, lng: Number, address: String },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -55,7 +68,7 @@ const ServiceSchema = new mongoose.Schema({
 });
 const Service = mongoose.model('Service', ServiceSchema);
 
-// --- ROLE LOGIC (Preserved for Tanmoy/Karan/Harsh/Biki) ---
+// --- ROLE LOGIC ---
 const ALLOWED_DEVS = [
     "tanmoyaj35@gmail.com",
     "karankatowal80@gmail.com", 
@@ -71,7 +84,7 @@ const getRoleFromEmail = (email) => {
     return 'user';
 };
 
-// --- AUTH ROUTES (Preserved) ---
+// --- AUTH ROUTES ---
 app.post('/api/signup', async (req, res) => {
     const { name, email, password } = req.body;
     try {
@@ -82,7 +95,7 @@ app.post('/api/signup', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
         user = new User({ name, email, password: hashedPassword, role });
         await user.save();
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, process.env.JWT_SECRET);
         res.json({ token, role: user.role });
     } catch (err) { res.status(500).send('Server Error'); }
 });
@@ -94,12 +107,12 @@ app.post('/api/login', async (req, res) => {
         if (!user) return res.status(400).json({ msg: 'User not found' });
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, process.env.JWT_SECRET);
         res.json({ token, role: user.role });
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// --- CORE API ROUTES (Includes All Updates) ---
+// --- CORE API ROUTES ---
 app.get('/api/services', async (req, res) => {
     const services = await Service.find();
     res.json(services);
@@ -116,7 +129,7 @@ app.post('/api/services', async (req, res) => {
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// ✅ CUMULATIVE FIX: Optimized Chat Route with stable model
+// ✅ CHAT ROUTE
 app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -130,7 +143,8 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ error: "Chatbot connection error" });
     }
 });
-//// --- 1. DELETE SERVICE ROUTE (Developer & Owner Only) ---
+
+// --- DELETE SERVICE ---
 app.delete('/api/services/:id', async (req, res) => {
     const token = req.header('x-auth-token');
     if (!token) return res.status(401).json({ msg: 'No token' });
@@ -139,8 +153,7 @@ app.delete('/api/services/:id', async (req, res) => {
         const service = await Service.findById(req.params.id);
         if (!service) return res.status(404).json({ msg: 'Service not found' });
 
-        // Allowed if user is developer OR the owner
-        const isDev = ALLOWED_DEVS.includes(decoded.email);
+        const isDev = ALLOWED_DEVS.includes(decoded.email?.toLowerCase());
         const isOwner = service.owner && service.owner.toString() === decoded.id;
 
         if (!isDev && !isOwner) return res.status(403).json({ msg: 'Unauthorized' });
@@ -150,21 +163,20 @@ app.delete('/api/services/:id', async (req, res) => {
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// --- 2. DELETE USER/EMAIL ROUTE (Developer Only) ---
+// --- DELETE USER ---
 app.delete('/api/users/:id', async (req, res) => {
     const token = req.header('x-auth-token');
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role !== 'developer') return res.status(403).json({ msg: 'Admin only' });
 
-        // Delete user and all their associated services
         await User.findByIdAndDelete(req.params.id);
         await Service.deleteMany({ owner: req.params.id });
-        res.json({ msg: 'User and their services deleted from database' });
+        res.json({ msg: 'User and their services deleted' });
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
-// --- 3. AUTO-WAKE LOGIC (Place right before app.listen) ---
+// --- AUTO-WAKE LOGIC ---
 const WAKE_URL = 'https://service-sync-website.onrender.com/api/services';
 setInterval(async () => {
     try {
@@ -175,7 +187,6 @@ setInterval(async () => {
     }
 }, 840000); // 14 minutes
 
-// --- 4. START SERVER ---
+// --- START SERVER ---
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => console.log(`🚀 Service Sync Backend running on port ${PORT}`));
