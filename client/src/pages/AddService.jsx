@@ -42,7 +42,7 @@ export default function AddService() {
           <div>
             <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Category</label>
             <select 
-                className="w-full p-3 border border-gray-300 rounded-lg mt-1 bg-white focus:ring-2 focus:ring-black focus:border-black outline-none transition cursor-pointer" 
+                className="w-full p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
                 onChange={e => setForm({...form, category: e.target.value})}
                 value={form.category}
             >
