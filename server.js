@@ -130,39 +130,52 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ error: "Chatbot connection error" });
     }
 });
-
-const PORT = process.env.PORT || 5000;
-// --- DELETE SERVICE ROUTE (Developer & Owner Only) ---
+//// --- 1. DELETE SERVICE ROUTE (Developer & Owner Only) ---
 app.delete('/api/services/:id', async (req, res) => {
     const token = req.header('x-auth-token');
-    
-    // 1. Check if token exists
-    if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
-
+    if (!token) return res.status(401).json({ msg: 'No token' });
     try {
-        // 2. Verify Token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // 3. Find the Service
         const service = await Service.findById(req.params.id);
         if (!service) return res.status(404).json({ msg: 'Service not found' });
 
-        // 4. ROLE CHECK: Only allow if user is a Developer OR the Owner
-        // We check decoded.role which is set during login/signup based on your ALLOWED_DEVS list
-        const isDev = decoded.role === 'developer';
+        // Allowed if user is developer OR the owner
+        const isDev = ALLOWED_DEVS.includes(decoded.email);
         const isOwner = service.owner && service.owner.toString() === decoded.id;
 
-        if (!isDev && !isOwner) {
-            return res.status(403).json({ msg: 'Not authorized to delete this service' });
-        }
+        if (!isDev && !isOwner) return res.status(403).json({ msg: 'Unauthorized' });
 
-        // 5. Perform Delete
         await Service.findByIdAndDelete(req.params.id);
-        res.json({ msg: 'Service removed successfully' });
-
-    } catch (err) {
-        console.error("Delete Error:", err.message);
-        res.status(500).send('Server Error');
-    }
+        res.json({ msg: 'Service deleted' });
+    } catch (err) { res.status(500).send('Server Error'); }
 });
+
+// --- 2. DELETE USER/EMAIL ROUTE (Developer Only) ---
+app.delete('/api/users/:id', async (req, res) => {
+    const token = req.header('x-auth-token');
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.role !== 'developer') return res.status(403).json({ msg: 'Admin only' });
+
+        // Delete user and all their associated services
+        await User.findByIdAndDelete(req.params.id);
+        await Service.deleteMany({ owner: req.params.id });
+        res.json({ msg: 'User and their services deleted from database' });
+    } catch (err) { res.status(500).send('Server Error'); }
+});
+
+// --- 3. AUTO-WAKE LOGIC (Place right before app.listen) ---
+const WAKE_URL = 'https://service-sync-website.onrender.com/api/services';
+setInterval(async () => {
+    try {
+        const response = await fetch(WAKE_URL);
+        console.log(`🚀 Auto-Wake: Ping Success (${response.status})`);
+    } catch (err) {
+        console.error("❌ Auto-Wake Fail:", err.message);
+    }
+}, 840000); // 14 minutes
+
+// --- 4. START SERVER ---
+const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => console.log(`🚀 Service Sync Backend running on port ${PORT}`));
