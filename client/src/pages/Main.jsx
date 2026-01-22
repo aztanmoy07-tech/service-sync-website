@@ -103,7 +103,7 @@ const Main = () => {
                <div className="relative w-full max-w-3xl">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center"><Icons.Search /></div>
                   <input 
-                    type="text" className="w-full pl-14 pr-6 py-5 rounded-3xl bg-white border border-gray-200 outline-none shadow-xl text-xl"
+                    type="text" className="w-full pl-14 pr-6 py-5 rounded-3xl bg-white border border-gray-100 outline-none shadow-xl text-xl"
                     placeholder="Search services..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -132,15 +132,23 @@ const Main = () => {
         {/* Results / Map Section */}
         <div className="pb-32">
             <h2 className="text-3xl font-black text-gray-900 mb-8">{category === 'map' ? 'Live Navigation' : 'Results'}</h2>
+            
+            {/* ✅ UPDATED GPS MAP SECTION WITH HTTPS AND LOADING STATE */}
             {category === 'map' ? (
-                <div className="w-full h-[600px] bg-white rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
-                  {/* ✅ Corrected HTTPS Map URL */}
+                <div className="w-full h-[600px] bg-white rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white relative">
+                  {/* Fallback while GPS data is loading */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-500 font-bold">
+                    📡 Accessing GPS Navigation...
+                  </div>
                   <iframe 
                     width="100%" 
                     height="100%" 
                     frameBorder="0" 
-                    src={`https://www.google.com/maps/embed/v1/place?key=API_KEY&q=Guwahati6{location.lat},${location.lng}&z=15&output=embed`}
-                    title="Live GPS Map"
+                    style={{ border: 0, position: 'relative', zIndex: 10 }}
+                    /* ✅ SECURE HTTPS URL with output=embed to fix the blank screen */
+                    src={`https://maps.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
+                    allowFullScreen
+                    title="Service Sync Live Map"
                   ></iframe>
                 </div>
             ) : (
