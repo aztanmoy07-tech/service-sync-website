@@ -1,103 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-export default function AddService() {
-  // Default category is 'shop' to ensure it's never empty or invalid
-  const [form, setForm] = useState({ name: '', category: 'shop', price: '', contact: '', address: '' });
+const AddService = () => {
+  const [formData, setFormData] = useState({
+    name: '', category: 'shop', price: '', contact: '', address: '', description: '', lat: 26.1833, lng: 91.7333
+  });
+  
   const navigate = useNavigate();
+  const API_URL = 'https://service-sync-website.onrender.com';
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setFormData(prev => ({ ...prev, lat: position.coords.latitude, lng: position.coords.longitude }));
+      });
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
     try {
-      await axios.post('https://service-sync-website.onrender.com/api/services', form, { headers: { 'x-auth-token': token } });
-      alert("Service Added Successfully!");
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/api/services`, formData, { headers: { Authorization: `Bearer ${token}` } });
+      alert("Service added successfully!");
       navigate('/');
-    } catch (err) {
-      alert("Failed to add service. " + (err.response?.data?.msg || "Check console"));
-    }
+    } catch (err) { alert("Error adding service."); }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border border-gray-200">
-        <h2 className="text-3xl font-black mb-2 text-center text-black">Add New Service</h2>
-        <p className="text-gray-500 text-center mb-8 text-sm">Fill in the details to list your business.</p>
-        
-        <form onSubmit={handleSubmit} className="space-y-5">
-          
-          {/* SERVICE NAME */}
-          <div>
-            <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Service Name</label>
-            <input 
-                className="w-full p-3 border border-gray-300 rounded-lg mt-1 focus:ring-2 focus:ring-black focus:border-black outline-none transition" 
-                placeholder="e.g. Campus Canteen" 
-                onChange={e => setForm({...form, name: e.target.value})} 
-                required 
-            />
+    <div className="min-h-screen bg-gray-50 py-12 px-6">
+      <div className="max-w-5xl mx-auto bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100">
+        <div className="md:flex">
+          <div className="md:w-1/2 bg-gray-100 h-64 md:h-auto relative">
+            <iframe width="100%" height="100%" frameBorder="0" src={`https://www.google.com/maps/reviews/data=!4m6!14m5!1m4!2m3!1sCi9DQUlRQUNvZENodHljRjlvT2sxYVpGRmZNVXBWWTBOMlNVaE1UMFZLTWtSWU1GRRAB!2m1!1s0x375a5a337667a42f:0xd2a0e60c780ed1ad{formData.lat},${formData.lng}&output=embed`} title="Picker"></iframe>
           </div>
-          
-          {/* STRICT CATEGORY DROPDOWN */}
-          <div>
-            <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Category</label>
-            <select 
-                className="w-full p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
-                onChange={e => setForm({...form, category: e.target.value})}
-                value={form.category}
-            >
-                {/* These VALUES must match the IDs in Dashboard.jsx exactly */}
-                <option value="shop">Shops (Essentials & Electronics)</option>
-                <option value="transport">Transport (Taxi, Bus, Rentals)</option>
-                <option value="emergency">Emergency (Medical & Aid)</option>
-                <option value="student">Student Zone (Hostels & Libraries)</option>
-                <option value="hotel">Hotels (Guest Houses)</option>
-            </select>
+          <div className="md:w-1/2 p-10">
+            <h2 className="text-3xl font-black text-gray-900 mb-2">Register Business</h2>
+            <p className="text-gray-500 mb-8 font-medium italic text-sm">Join the Service Sync network today.</p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input type="text" placeholder="Business Name" required className="w-full p-4 rounded-2xl bg-gray-50 outline-none" onChange={(e) => setFormData({...formData, name: e.target.value})} />
+              <select className="w-full p-4 rounded-2xl bg-gray-50 outline-none font-bold" onChange={(e) => setFormData({...formData, category: e.target.value})}>
+                <option value="shop">Shop / Essentials</option>
+                <option value="hotel">Hotel / Rooms</option>
+                <option value="transport">Transport / Taxi</option>
+                <option value="student">Student Zone</option>
+                <option value="emergency">Emergency Service</option>
+              </select>
+              <div className="flex gap-4">
+                <input type="number" placeholder="Price (₹)" required className="w-1/2 p-4 rounded-2xl bg-gray-50 outline-none" onChange={(e) => setFormData({...formData, price: e.target.value})} />
+                <input type="text" placeholder="Contact No" required className="w-1/2 p-4 rounded-2xl bg-gray-50 outline-none" onChange={(e) => setFormData({...formData, contact: e.target.value})} />
+              </div>
+              <textarea placeholder="Business Description" className="w-full p-4 rounded-2xl bg-gray-50 outline-none h-24" onChange={(e) => setFormData({...formData, description: e.target.value})}></textarea>
+              <textarea placeholder="Full Address" required className="w-full p-4 rounded-2xl bg-gray-50 outline-none h-20" onChange={(e) => setFormData({...formData, address: e.target.value})}></textarea>
+              <button type="submit" className="w-full bg-black hover:bg-gray-800 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95">PUBLISH TO SERVICE SYNC</button>
+            </form>
           </div>
-
-          {/* PRICE & CONTACT */}
-          <div className="flex gap-4">
-            <div className="w-1/2">
-                <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Base Price (₹)</label>
-                <input 
-                    className="w-full p-3 border border-gray-300 rounded-lg mt-1" 
-                    placeholder="99" 
-                    type="number" 
-                    onChange={e => setForm({...form, price: e.target.value})} 
-                    required 
-                />
-            </div>
-            <div className="w-1/2">
-                <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Contact No.</label>
-                <input 
-                    className="w-full p-3 border border-gray-300 rounded-lg mt-1" 
-                    placeholder="+91 98765..." 
-                    onChange={e => setForm({...form, contact: e.target.value})} 
-                    required 
-                />
-            </div>
-          </div>
-
-          {/* ADDRESS */}
-          <div>
-            <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Location / Address</label>
-            <input 
-                className="w-full p-3 border border-gray-300 rounded-lg mt-1" 
-                placeholder="e.g. Near Main Gate, Nirjuli" 
-                onChange={e => setForm({...form, address: e.target.value})} 
-                required 
-            />
-          </div>
-
-          <button className="w-full bg-black text-white p-4 rounded-lg font-bold text-sm hover:bg-gray-800 transition shadow-lg mt-4">
-            🚀 Publish Service
-          </button>
-        </form>
-        
-        <button onClick={() => navigate('/')} className="w-full mt-4 text-gray-500 font-bold text-xs hover:text-black transition">
-            Cancel & Go Back
-        </button>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default AddService;

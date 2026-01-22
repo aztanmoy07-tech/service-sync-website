@@ -3,7 +3,6 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import ServiceCard from '../components/ServiceCard'; 
 
-// ✅ Icons
 const Icons = {
   Search: () => <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>,
   Plus: () => <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>,
@@ -21,30 +20,35 @@ const Main = () => {
   const [category, setCategory] = useState('All');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [location, setLocation] = useState({ lat: 26.1833, lng: 91.7333 });
   const navigate = useNavigate();
   
-  // ✅ AUTH & ROLE CHECK
   const token = localStorage.getItem('token');
-  const isLoggedIn = !!token;
   const userRole = localStorage.getItem('role') || 'user'; 
-  
-  // ✅ ACCESS CONTROL
   const isDeveloper = userRole === 'developer';
   const isBusiness = userRole === 'business' || userRole === 'developer';
-
   const API_URL = 'https://service-sync-website.onrender.com';
 
-  const fetchServices = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}/api/services`);
-      setServices(res.data);
-      setFilteredServices(res.data);
-    } catch (err) { console.error("Error fetching services:", err); } 
-    finally { setLoading(false); }
-  };
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+      });
+    }
+  }, []);
 
-  useEffect(() => { fetchServices(); }, []);
+  useEffect(() => {
+    const fetchServices = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${API_URL}/api/services`);
+        setServices(res.data);
+        setFilteredServices(res.data);
+      } catch (err) { console.error(err); } 
+      finally { setLoading(false); }
+    };
+    fetchServices();
+  }, []);
 
   useEffect(() => {
     let result = services;
@@ -52,77 +56,47 @@ const Main = () => {
         result = result.filter(s => s.category.toLowerCase() === category.toLowerCase());
     }
     if (searchTerm) {
-        result = result.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.category.toLowerCase().includes(searchTerm.toLowerCase()));
+        result = result.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     setFilteredServices(result);
   }, [category, searchTerm, services]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
-  };
-
-  const categories = [
-    { id: 'map', name: 'View Area Map', sub: 'Click to expand visual map', icon: <Icons.Map />, bg: 'bg-white' }, 
-    { id: 'shop', name: 'Shops', sub: 'Essentials & Electronics', icon: <Icons.Shop />, bg: 'bg-white' },
-    { id: 'hotel', name: 'Hotels', sub: 'Guest Houses & Rooms', icon: <Icons.Hotel />, bg: 'bg-white' },
-    { id: 'transport', name: 'Transport', sub: 'Taxi, Bus & Rentals', icon: <Icons.Transport />, bg: 'bg-white' },
-    { id: 'student', name: 'Student Zone', sub: 'Hostels & Libraries', icon: <Icons.Student />, bg: 'bg-white' },
-    { id: 'emergency', name: 'Emergency', sub: 'Medical & Critical Aid', icon: <Icons.Emergency />, bg: 'bg-white' },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      
-      {/* Navbar */}
-      <nav className="flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+      <nav className="flex justify-between items-center px-8 py-4 bg-white/90 backdrop-blur-lg sticky top-0 z-50 border-b border-gray-100">
         <div className="flex items-center gap-2">
-           <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-lg">S</div>
-           <span className="text-xl font-bold tracking-tight">Survey Sync</span>
+           <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">S</div>
+           <span className="text-2xl font-black tracking-tight">Service Sync</span>
         </div>
-        <div className="flex gap-3">
-            {isLoggedIn ? (
+        <div className="flex gap-4">
+            {token ? (
               <>
-                {isDeveloper && (
-                  <Link to="/dev" className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-full transition shadow-md">
-                    Developer Panel 🛠️
-                  </Link>
-                )}
-                <button onClick={handleLogout} className="px-4 py-2 text-sm font-semibold text-white bg-black rounded-full hover:bg-gray-800 transition">Logout</button>
+                {isDeveloper && <Link to="/dev" className="px-5 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-full transition shadow-lg">Dev Panel 🛠️</Link>}
+                <button onClick={() => {localStorage.clear(); navigate('/login');}} className="px-5 py-2.5 text-sm font-bold text-white bg-black rounded-full hover:bg-gray-800 transition">Logout</button>
               </>
-            ) : (
-              <>
-                <Link to="/login" className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-black hover:bg-gray-100 rounded-full transition">Login</Link>
-                <Link to="/signup" className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 transition">Sign Up</Link>
-              </>
-            )}
+            ) : <Link to="/login" className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-full shadow-lg">Login</Link>}
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="py-12 text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
-              Find Services <span className="text-blue-600">Near You</span>
+      <div className="container mx-auto px-6 max-w-[95%]">
+        <div className="py-14 text-center space-y-4">
+            <h1 className="text-5xl md:text-6xl font-black text-gray-900 tracking-tighter">
+              Find Services <span className="text-blue-600 underline decoration-blue-200">Near You</span>
             </h1>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              Instant access to emergency help, student resources, and local utilities in your area.
+            <p className="text-gray-500 text-xl font-medium max-w-3xl mx-auto">
+              Real-time local tracking and service management on the Service Sync platform.
             </p>
-            <div className="pt-6 flex flex-col items-center gap-4">
-               
-               {isBusiness ? (
-                 <button onClick={() => navigate("/add-service")} className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition transform">
+            <div className="pt-8 flex flex-col items-center gap-6">
+               {isBusiness && (
+                 <button onClick={() => navigate("/add-service")} className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-2xl font-black shadow-2xl hover:scale-105 transition-all">
                     <Icons.Plus /> Add New Service
                  </button>
-               ) : <div className="h-4"></div>}
-
-               <div className="relative w-full max-w-2xl mt-4">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                     <Icons.Search />
-                  </div>
+               )}
+               <div className="relative w-full max-w-3xl">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><Icons.Search /></div>
                   <input 
-                    type="text" 
-                    className="w-full pl-11 pr-4 py-4 rounded-2xl bg-white border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none shadow-sm text-lg transition"
-                    placeholder="What are you looking for? (e.g. Taxi, Medical)"
+                    type="text" className="w-full pl-14 pr-6 py-5 rounded-3xl bg-white border border-gray-200 focus:ring-4 focus:ring-blue-100 outline-none shadow-xl text-xl transition-all"
+                    placeholder="Search services near you..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -130,64 +104,20 @@ const Main = () => {
             </div>
         </div>
 
-        <div className="mb-12">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 ml-1">Explore Categories</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-               {categories.map((cat) => (
-                 <button 
-                   key={cat.id} 
-                   onClick={() => setCategory(cat.id === category ? 'All' : cat.id)} 
-                   className={`text-left p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 group ${category === cat.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'bg-white'}`}
-                 >
-                    <div className="flex items-start justify-between mb-4">
-                       <div className="p-3 rounded-2xl bg-gray-50 group-hover:bg-white transition">{cat.icon}</div>
-                       {cat.id === 'map' && <span className="text-[10px] bg-gray-200 px-2 py-1 rounded-full font-bold text-gray-600">VISUAL</span>}
-                    </div>
-                    <div>
-                       <h4 className="text-lg font-bold text-gray-800">{cat.name}</h4>
-                       <p className="text-sm text-gray-500">{cat.sub}</p>
-                    </div>
-                 </button>
-               ))}
-            </div>
-        </div>
-
-        <div className="pb-20">
-            <div className="flex justify-between items-end mb-6">
-               <h2 className="text-2xl font-bold text-gray-900">
-                  {category === 'map' ? 'Live Area Map' : 'Available Services'}
-               </h2>
-               {category !== 'All' && <button onClick={() => setCategory('All')} className="text-sm text-red-500 font-bold hover:underline">Clear Filter</button>}
+        <div className="pb-32">
+            <div className="flex justify-between items-end mb-8">
+               <h2 className="text-3xl font-black text-gray-900 tracking-tight">{category === 'map' ? 'Live GPS Navigation' : 'Local Results'}</h2>
+               {category !== 'All' && <button onClick={() => setCategory('All')} className="text-sm font-black text-red-500 px-4 py-2 rounded-full transition">RESET</button>}
             </div>
             
-            {/* ✅ MAP IMPLEMENTATION */}
             {category === 'map' ? (
-                <div className="w-full h-96 bg-gray-200 rounded-3xl overflow-hidden shadow-inner border border-gray-300">
-                  {/* Embedded Google Map (Defaulting to a central location, usually Guwahati based on context, or generic) */}
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="no" 
-                    marginHeight="0" 
-                    marginWidth="0" 
-                    src="https://maps.google.com/maps?q=Guwahati&t=&z=13&ie=UTF8&iwloc=&output=embed"
-                    title="Area Map"
-                  ></iframe>
+                <div className="w-full h-[600px] bg-white rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
+                  <iframe width="100%" height="100%" frameBorder="0" src={`https://www.google.com/maps/embed/v1/place?key=API_KEY&q=Guwahati1{location.lat},${location.lng}&output=embed&z=15`} title="Live Location Map"></iframe>
                 </div>
             ) : (
-                loading ? <div className="text-center py-20 text-gray-400">Loading services...</div> : filteredServices.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {filteredServices.map((service) => (
-                        <ServiceCard key={service._id} service={service} />
-                      ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
-                        <p className="text-gray-500 text-lg">No services found for "{searchTerm || category}".</p>
-                        <button onClick={() => {setCategory('All'); setSearchTerm('');}} className="mt-2 text-blue-600 font-bold">Show All</button>
-                    </div>
-                )
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                  {filteredServices.map((service) => <ServiceCard key={service._id} service={service} />)}
+                </div>
             )}
         </div>
       </div>
