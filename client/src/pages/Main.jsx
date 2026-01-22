@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import ServiceCard from '../components/ServiceCard'; 
 
+// ✅ Built-in Icons (Ensures they load even if external libs fail)
 const Icons = {
   Search: () => <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>,
   Plus: () => <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>,
@@ -30,73 +31,81 @@ const Main = () => {
   const API_URL = 'https://service-sync-website.onrender.com';
 
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+    const fetchServices = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/services`);
+        setServices(res.data);
+        setFilteredServices(res.data);
+      } catch (err) { console.error("Data fetch failed:", err); } 
+      finally { setLoading(false); }
+    };
+    fetchServices();
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       });
     }
   }, []);
 
   useEffect(() => {
-    const fetchServices = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(`${API_URL}/api/services`);
-        setServices(res.data);
-        setFilteredServices(res.data);
-      } catch (err) { console.error(err); } 
-      finally { setLoading(false); }
-    };
-    fetchServices();
-  }, []);
-
-  useEffect(() => {
     let result = services;
     if (category !== 'All' && category !== 'map') {
-        result = result.filter(s => s.category.toLowerCase() === category.toLowerCase());
+      result = result.filter(s => s.category?.toLowerCase() === category.toLowerCase());
     }
     if (searchTerm) {
-        result = result.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      result = result.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     setFilteredServices(result);
   }, [category, searchTerm, services]);
 
+  const categories = [
+    { id: 'map', name: 'View Area Map', sub: 'Live GPS Location', icon: <Icons.Map /> }, 
+    { id: 'shop', name: 'Shops', sub: 'Essentials', icon: <Icons.Shop /> },
+    { id: 'hotel', name: 'Hotels', sub: 'Guest Houses', icon: <Icons.Hotel /> },
+    { id: 'transport', name: 'Transport', sub: 'Taxi & Rentals', icon: <Icons.Transport /> },
+    { id: 'student', name: 'Student Zone', sub: 'Hostels', icon: <Icons.Student /> },
+    { id: 'emergency', name: 'Emergency', sub: 'Medical Aid', icon: <Icons.Emergency /> },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      <nav className="flex justify-between items-center px-8 py-4 bg-white/90 backdrop-blur-lg sticky top-0 z-50 border-b border-gray-100">
+      {/* --- NAVBAR (Always Visible) --- */}
+      <nav className="flex justify-between items-center px-8 py-4 bg-white sticky top-0 z-50 border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-2">
-           <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">S</div>
+           <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-xl">S</div>
            <span className="text-2xl font-black tracking-tight">Service Sync</span>
         </div>
         <div className="flex gap-4">
             {token ? (
               <>
-                {isDeveloper && <Link to="/dev" className="px-5 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-full transition shadow-lg">Dev Panel 🛠️</Link>}
-                <button onClick={() => {localStorage.clear(); navigate('/login');}} className="px-5 py-2.5 text-sm font-bold text-white bg-black rounded-full hover:bg-gray-800 transition">Logout</button>
+                {isDeveloper && <Link to="/dev" className="px-5 py-2 text-sm font-bold text-white bg-red-600 rounded-full">Dev Panel</Link>}
+                <button onClick={() => {localStorage.clear(); window.location.reload();}} className="px-5 py-2 text-sm font-bold text-white bg-black rounded-full">Logout</button>
               </>
-            ) : <Link to="/login" className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-full shadow-lg">Login</Link>}
+            ) : (
+              <>
+                <Link to="/login" className="px-5 py-2 text-sm font-bold text-gray-600 hover:text-black">Login</Link>
+                <Link to="/signup" className="px-6 py-2 text-sm font-bold text-white bg-blue-600 rounded-full">Sign Up</Link>
+              </>
+            )}
         </div>
       </nav>
 
+      {/* --- BROAD DASHBOARD CONTENT --- */}
       <div className="container mx-auto px-6 max-w-[95%]">
         <div className="py-14 text-center space-y-4">
-            <h1 className="text-5xl md:text-6xl font-black text-gray-900 tracking-tighter">
-              Find Services <span className="text-blue-600 underline decoration-blue-200">Near You</span>
-            </h1>
-            <p className="text-gray-500 text-xl font-medium max-w-3xl mx-auto">
-              Real-time local tracking and service management on the Service Sync platform.
-            </p>
+            <h1 className="text-5xl font-black text-gray-900 tracking-tighter">Find Services <span className="text-blue-600">Near You</span></h1>
             <div className="pt-8 flex flex-col items-center gap-6">
                {isBusiness && (
-                 <button onClick={() => navigate("/add-service")} className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-2xl font-black shadow-2xl hover:scale-105 transition-all">
+                 <button onClick={() => navigate("/add-service")} className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-2xl font-black shadow-lg">
                     <Icons.Plus /> Add New Service
                  </button>
                )}
                <div className="relative w-full max-w-3xl">
-                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><Icons.Search /></div>
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center"><Icons.Search /></div>
                   <input 
-                    type="text" className="w-full pl-14 pr-6 py-5 rounded-3xl bg-white border border-gray-200 focus:ring-4 focus:ring-blue-100 outline-none shadow-xl text-xl transition-all"
-                    placeholder="Search services near you..."
+                    type="text" className="w-full pl-14 pr-6 py-5 rounded-3xl bg-white border border-gray-200 outline-none shadow-xl text-xl"
+                    placeholder="Search services..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -104,19 +113,33 @@ const Main = () => {
             </div>
         </div>
 
-        <div className="pb-32">
-            <div className="flex justify-between items-end mb-8">
-               <h2 className="text-3xl font-black text-gray-900 tracking-tight">{category === 'map' ? 'Live GPS Navigation' : 'Local Results'}</h2>
-               {category !== 'All' && <button onClick={() => setCategory('All')} className="text-sm font-black text-red-500 px-4 py-2 rounded-full transition">RESET</button>}
+        {/* --- CATEGORY GRID (Always Visible) --- */}
+        <div className="mb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+               {categories.map((cat) => (
+                 <button 
+                   key={cat.id} 
+                   onClick={() => setCategory(cat.id === category ? 'All' : cat.id)} 
+                   className={`text-left p-8 rounded-[2rem] border-2 transition-all ${category === cat.id ? 'border-blue-500 bg-blue-50' : 'border-transparent bg-white shadow-sm'}`}
+                 >
+                    <div className="mb-6 inline-block p-4 rounded-2xl bg-gray-50">{cat.icon}</div>
+                    <h4 className="text-xl font-extrabold text-gray-900 leading-tight">{cat.name}</h4>
+                    <p className="text-sm font-semibold text-gray-400 mt-1">{cat.sub}</p>
+                 </button>
+               ))}
             </div>
-            
+        </div>
+
+        {/* --- RESULTS AREA --- */}
+        <div className="pb-32">
+            <h2 className="text-3xl font-black text-gray-900 mb-8">{category === 'map' ? 'Live Navigation' : 'Results'}</h2>
             {category === 'map' ? (
                 <div className="w-full h-[600px] bg-white rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white">
-                  <iframe width="100%" height="100%" frameBorder="0" src={`https://www.google.com/maps/embed/v1/place?key=API_KEY&q=Guwahati1{location.lat},${location.lng}&output=embed&z=15`} title="Live Location Map"></iframe>
+                  <iframe width="100%" height="100%" frameBorder="0" src={`https://www.google.com/maps/embed/v1/place?key=API_KEY&q=Guwahati3{location.lat},${location.lng}&output=embed`} title="Map"></iframe>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
-                  {filteredServices.map((service) => <ServiceCard key={service._id} service={service} />)}
+                  {filteredServices.length > 0 ? filteredServices.map((s) => <ServiceCard key={s._id} service={s} />) : <p className="text-gray-400 italic">No services listed yet.</p>}
                 </div>
             )}
         </div>
