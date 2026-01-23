@@ -34,7 +34,7 @@ export default function EditService() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await axios.put(`/api/services/${id}`, form, {
+      await axios.put(`https://service-sync-website.onrender.com/api/services/${id}`, form, {
         headers: { 'x-auth-token': token }
       });
       alert("Service Updated Successfully!");
