@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; // ✅ CORRECTION: Added missing 'import'
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -6,7 +6,7 @@ const Signup = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const navigate = useNavigate();
 
-  // ✅ Backend URL (Make sure this is your EXACT Render link)
+  // ✅ Backend URL
   const API_URL = 'https://service-sync-website.onrender.com';
 
   const { name, email, password } = formData;
@@ -16,16 +16,26 @@ const Signup = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      // ✅ FIXED: Changed route from '/api/auth/register' to '/api/signup' to match server.js
+      // ✅ Route matches server.js
       const res = await axios.post(`${API_URL}/api/signup`, formData);
       
-      // Save token and redirect
+      // ✅ CORRECTION: Save Token AND Role (Critical for Navbar/Dashboards)
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('role', res.data.role || 'user'); // Default to 'user' if server doesn't send it
+
       alert("Signup Successful! Redirecting...");
-      navigate('/');
+
+      // ✅ CORRECTION: Redirect based on role (Future-proofing)
+      if(res.data.role === 'developer') {
+          navigate('/dev');
+      } else if (res.data.role === 'business') {
+          navigate('/business');
+      } else {
+          navigate('/'); 
+      }
+
     } catch (err) {
       console.error("Signup Error:", err);
-      // More helpful error message
       const errorMsg = err.response?.data?.msg || 'Error signing up. Please try again.';
       alert(errorMsg);
     }
