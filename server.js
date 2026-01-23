@@ -81,7 +81,7 @@ const getRoleFromEmail = (email) => {
     return 'user';
 };
     // ✅ DEBUG SIGNUP ROUTE
-    
+
 app.post('/api/signup', async (req, res) => {
     console.log("📥 Signup Request Received:", req.body); // 👈 THIS LOG IS KEY
 
@@ -250,3 +250,4 @@ setInterval(async () => {
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Service Sync Backend running on port ${PORT}`));
+// Force update v1
