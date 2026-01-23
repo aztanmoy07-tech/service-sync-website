@@ -58,7 +58,14 @@ const ServiceSchema = new mongoose.Schema({
     contact: String,
     description: String,
     isVerified: { type: Boolean, default: false },
-    price: { type: Number, default: 99 },
+   price: {
+    type: String,  // ✅ CHANGED to String to allow "100-500"
+    required: true
+  },
+  category: {      // ✅ ADDED Category so the dropdown works
+    type: String,
+    default: 'shop'
+  },
     location: { lat: Number, lng: Number, address: String },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     items: [{ name: String, price: Number }]
