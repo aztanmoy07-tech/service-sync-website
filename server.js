@@ -236,16 +236,18 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // --- AUTO-WAKE LOGIC ---
-const WAKE_URL = 'https://service-sync-website.onrender.com/api/services';
-setInterval(async () => {
+// ✅ CORRECT KEEP-ALIVE CODE
+const reloadWebsite = async () => {
     try {
-        const response = await fetch(WAKE_URL);
-        console.log(`🚀 Auto-Wake: Ping Success (${response.status})`);
-    } catch (err) {
-        console.error("❌ Auto-Wake Fail:", err.message);
+        // 👇 USE YOUR REAL RENDER URL HERE
+        await fetch("https://service-sync-website.onrender.com/api/services"); 
+        console.log("✅ Auto-Wake: Ping sent");
+    } catch (error) {
+        console.error("❌ Auto-Wake Fail:", error.message);
     }
-}, 840000); // 14 minutes
+}
 
+setInterval(reloadWebsite, 14 * 60 * 1000); // Ping every 14 mins
 
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
