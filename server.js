@@ -142,7 +142,7 @@ app.post('/api/chat', async (req, res) => {
         }
 
         // 2. Initialize Model inside the route for stability
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
         if (!message) return res.status(400).json({ error: "No message provided" });
 
