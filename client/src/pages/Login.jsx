@@ -6,7 +6,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const navigate = useNavigate();
 
-  // ✅ Backend URL
+  // ✅ Backend URL (Make sure this matches your Render link)
   const API_URL = 'https://service-sync-website.onrender.com';
 
   const { email, password } = formData;
@@ -16,7 +16,9 @@ const Login = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_URL}/api/auth/login`, formData);
+      // ✅ FIXED: Changed route from '/api/auth/login' to '/api/login' to match server.js
+      const res = await axios.post(`${API_URL}/api/login`, formData);
+      
       localStorage.setItem('token', res.data.token);
       
       // Redirect based on role
@@ -26,8 +28,10 @@ const Login = () => {
           navigate('/'); 
       }
     } catch (err) {
-      console.error(err);
-      alert('Invalid Credentials');
+      console.error("Login Error:", err);
+      // More helpful error message
+      const errorMsg = err.response?.data?.msg || 'Invalid Credentials. Please try again.';
+      alert(errorMsg);
     }
   };
 
