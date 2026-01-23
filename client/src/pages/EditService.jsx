@@ -2,24 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-export default function EditService() {
+const EditService = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', category: 'shop', price: '', contact: '', address: '' });
   const [loading, setLoading] = useState(true);
 
+  // ✅ Backend URL
+  const API_URL = 'https://service-sync-website.onrender.com';
+
   useEffect(() => {
-    // Ideally use a specific GET /:id route, but finding in list works for small apps
-    axios.get('/api/services')
+    // ✅ FIXED: Use full URL to avoid 404 errors
+    axios.get(`${API_URL}/api/services`)
       .then(res => {
         const service = res.data.find(s => s._id === id);
         if (service) {
           setForm({
-            name: service.name,
-            category: service.category || 'shop', // Default to shop if missing
+            // ✅ Handle different field names (title vs name)
+            name: service.title || service.name, 
+            category: service.category || 'shop',
             price: service.price,
-            contact: service.contact,
-            address: service.location?.address || ''
+            contact: service.phone || service.contact,
+            // ✅ FIXED: Read address correctly as a string (matches AddService)
+            address: service.location || '' 
           });
         }
         setLoading(false);
@@ -34,7 +39,18 @@ export default function EditService() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await axios.put(`https://service-sync-website.onrender.com/api/services/${id}`, form, {
+      // ✅ Send data using the field names your Backend expects
+      const updateData = {
+        title: form.name,       // Backend expects 'title'
+        name: form.name,        // Sending 'name' too just in case
+        category: form.category,
+        price: form.price,
+        phone: form.contact,    // Backend expects 'phone'
+        contact: form.contact,
+        location: form.address  // Backend expects 'location'
+      };
+
+      await axios.put(`${API_URL}/api/services/${id}`, updateData, {
         headers: { 'x-auth-token': token }
       });
       alert("Service Updated Successfully!");
@@ -63,7 +79,7 @@ export default function EditService() {
             />
           </div>
           
-          {/* STRICT CATEGORY DROPDOWN */}
+          {/* CATEGORY DROPDOWN */}
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Category</label>
             <select 
@@ -81,18 +97,35 @@ export default function EditService() {
 
           <div className="flex gap-4">
             <div className="w-1/2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Price (₹)</label>
-                <input className="w-full p-3 border rounded-lg mt-1" type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Price Range (₹)</label>
+                {/* ✅ FIXED: Changed to text so you can edit ranges like '100-500' */}
+                <input 
+                  className="w-full p-3 border rounded-lg mt-1" 
+                  type="text" 
+                  value={form.price} 
+                  onChange={e => setForm({...form, price: e.target.value})} 
+                  required 
+                />
             </div>
             <div className="w-1/2">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Contact</label>
-                <input className="w-full p-3 border rounded-lg mt-1" value={form.contact} onChange={e => setForm({...form, contact: e.target.value})} required />
+                <input 
+                  className="w-full p-3 border rounded-lg mt-1" 
+                  value={form.contact} 
+                  onChange={e => setForm({...form, contact: e.target.value})} 
+                  required 
+                />
             </div>
           </div>
 
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Address</label>
-            <input className="w-full p-3 border rounded-lg mt-1" value={form.address} onChange={e => setForm({...form, address: e.target.value})} required />
+            <input 
+              className="w-full p-3 border rounded-lg mt-1" 
+              value={form.address} 
+              onChange={e => setForm({...form, address: e.target.value})} 
+              required 
+            />
           </div>
 
           <button className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-md mt-2">
@@ -106,4 +139,6 @@ export default function EditService() {
       </div>
     </div>
   );
-}
+};
+
+export default EditService;
