@@ -25,17 +25,14 @@ const allowedOrigins = [
     'https://service-sync-website-cgtp94m3q-aztanmoy07-techs-projects.vercel.app'
 ];
 
+// ✅ REPLACE YOUR CURRENT CORS BLOCK WITH THIS:
 app.use(cors({ 
-    origin: function (origin, callback) {
-        // allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            return callback(new Error('CORS Policy Error: Origin not allowed'), false);
-        }
-        return callback(null, true);
-    },
+    origin: '*',  // 🚨 This allows ANY URL to connect (Fixes the error instantly)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-auth-token'],
     credentials: true 
 }));
+
 
 // ✅ 2. FIX: HANDLE CORS PRE-FLIGHT (OPTIONS)
 // This answers the browser's "is it okay to talk to you?" request immediately.
