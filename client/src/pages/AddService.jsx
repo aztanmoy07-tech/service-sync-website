@@ -9,12 +9,12 @@ const AddService = () => {
   const API_URL = 'https://service-sync-website.onrender.com';
 
   const [formData, setFormData] = useState({
-    title: '',        // Business Name
-    description: '',  // Business Description
+    title: '',        
+    description: '',  
     price: '',
-    phone: '',        // Contact No
-    location: '',     // Full Address
-    category: 'General' // Default category
+    phone: '',        
+    location: '',     
+    category: 'shop' // Default category
   });
 
   const { title, description, price, phone, location, category } = formData;
@@ -27,7 +27,6 @@ const AddService = () => {
     if (!token) {
       navigate('/login');
     } else if (role !== 'business' && role !== 'developer') {
-      // If they are just a normal user, send them home
       alert("Access Denied: Only Businesses and Developers can add services.");
       navigate('/');
     }
@@ -43,21 +42,19 @@ const AddService = () => {
       const config = {
         headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': token // Send token to verify user
+          'x-auth-token': token 
         }
       };
 
-      // ✅ Post the data to your backend
       await axios.post(`${API_URL}/api/services`, formData, config);
       
       alert('Service Added Successfully!');
       
-      // Redirect based on role
       const role = localStorage.getItem('role');
       if (role === 'developer') {
         navigate('/dev');
       } else {
-        navigate('/business'); // Or dashboard
+        navigate('/business'); 
       }
       
     } catch (err) {
@@ -86,24 +83,41 @@ const AddService = () => {
               name="title" 
               value={title} 
               onChange={onChange} 
-              // ✅ VISIBILITY FIX: text-gray-900 (Black Text), bg-gray-50 (Light Background)
               className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none transition"
               placeholder="e.g. John's Plumbing"
               required 
             />
           </div>
 
+          {/* ✅ RESTORED: Category Dropdown */}
+          <div>
+            <label className="block text-gray-700 font-bold mb-2">Category</label>
+            <select 
+              name="category"
+              value={category}
+              onChange={onChange}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition cursor-pointer"
+            >
+              <option value="shop">Shops</option>
+              <option value="transport">Transport</option>
+              <option value="emergency">Emergency</option>
+              <option value="student">Student Zone</option>
+              <option value="hotel">Hotels</option>
+            </select>
+          </div>
+
           {/* Price & Contact Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-gray-700 font-bold mb-2">Price (₹)</label>
+              <label className="block text-gray-700 font-bold mb-2">Price Range (₹)</label>
+              {/* ✅ FIXED: Changed type="number" to type="text" to allow ranges like '0-100' */}
               <input 
-                type="number" 
+                type="text" 
                 name="price" 
                 value={price} 
                 onChange={onChange} 
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                placeholder="e.g. 500"
+                placeholder="e.g. 100-500"
                 required 
               />
             </div>
