@@ -25,17 +25,14 @@ const allowedOrigins = [
     'https://service-sync-website-cgtp94m3q-aztanmoy07-techs-projects.vercel.app'
 ];
 
-// ✅ REPLACE YOUR CURRENT CORS BLOCK WITH THIS:
 app.use(cors({ 
-    origin: '*',  // 🚨 This allows ANY URL to connect (Fixes the error instantly)
+    origin: '*',  // 🚨 This allows ANY URL to connect
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-auth-token'],
     credentials: true 
 }));
 
-
 // ✅ 2. FIX: HANDLE CORS PRE-FLIGHT (OPTIONS)
-// This answers the browser's "is it okay to talk to you?" request immediately.
 app.options('*', cors()); 
 
 mongoose.connect(process.env.MONGO_URI)
@@ -52,23 +49,34 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
+// ✅ UPDATED SERVICE SCHEMA WITH REVIEWS
 const ServiceSchema = new mongoose.Schema({
-    name: String,
-    category: String,
-    contact: String,
+    name: String, // Kept for legacy compatibility if needed
+    title: String, // Ensure title is used if your frontend sends it
+    category: { type: String, default: 'shop' },
+    contact: String, // Kept for legacy compatibility
+    phone: String,   // Ensure phone is used if your frontend sends it
     description: String,
     isVerified: { type: Boolean, default: false },
-   price: {
-    type: String,  // ✅ CHANGED to String to allow "100-500"
-    required: true
-  },
-  category: {      // ✅ ADDED Category so the dropdown works
-    type: String,
-    default: 'shop'
-  },
-    location: { lat: Number, lng: Number, address: String },
+    price: { type: String, required: true }, // String for ranges "100-500"
+    location: { type: String }, // Simplified to String based on previous context, or keep object if using maps
+    // Note: If you use the object structure {lat, lng, address}, revert this line. 
+    // Based on your last code "location: { lat: Number...}", but AddService sends a string. 
+    // SAFEST HYBRID approach below if you are transitioning:
+    // location: mongoose.Schema.Types.Mixed, 
+    
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    items: [{ name: String, price: Number }]
+    items: [{ name: String, price: Number }],
+    
+    // ✅ NEW: Reviews Section
+    reviews: [
+        {
+            user: { type: String, required: true }, // Name of the reviewer
+            rating: { type: Number, required: true }, // 1 to 5 stars
+            comment: { type: String, required: true },
+            date: { type: Date, default: Date.now }
+        }
+    ]
 });
 const Service = mongoose.model('Service', ServiceSchema);
 
@@ -87,14 +95,13 @@ const getRoleFromEmail = (email) => {
     if (lowerEmail.endsWith('@business.com')) return 'business';
     return 'user';
 };
-    // ✅ DEBUG SIGNUP ROUTE
 
+// ✅ SIGNUP ROUTE
 app.post('/api/signup', async (req, res) => {
-    console.log("📥 Signup Request Received:", req.body); // 👈 THIS LOG IS KEY
+    console.log("📥 Signup Request Received:", req.body);
 
     const { name, email, password } = req.body;
 
-    // 1. Check for missing data
     if (!name || !email || !password) {
         console.log("❌ Missing Fields:", { name, email, password });
         return res.status(400).json({ msg: "Please enter all fields (name, email, password)" });
@@ -119,11 +126,12 @@ app.post('/api/signup', async (req, res) => {
         res.json({ token, role: user.role });
 
     } catch (err) {
-        console.error("❌ SERVER ERROR:", err.message); // This will show the real crash reason
+        console.error("❌ SERVER ERROR:", err.message);
         res.status(500).send('Server Error');
     }
 });
 
+// ✅ LOGIN ROUTE
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -147,32 +155,95 @@ app.post('/api/services', async (req, res) => {
     if (!token) return res.status(401).json({ msg: 'No token' });
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const newService = new Service({ ...req.body, owner: decoded.id });
+        // Ensure we save both title/name and phone/contact for compatibility
+        const serviceData = {
+            ...req.body,
+            name: req.body.title || req.body.name, // Fallback
+            contact: req.body.phone || req.body.contact, // Fallback
+            owner: decoded.id
+        };
+        const newService = new Service(serviceData);
         await newService.save();
         res.json(newService);
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
+// ✅ UPDATE SERVICE (PUT)
+app.put('/api/services/:id', async (req, res) => {
+    const token = req.header('x-auth-token');
+    if (!token) return res.status(401).json({ msg: 'No token' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const service = await Service.findById(req.params.id);
+
+        if (!service) return res.status(404).json({ msg: 'Service not found' });
+
+        // Check ownership or dev status
+        const isDev = ALLOWED_DEVS.includes(decoded.email?.toLowerCase());
+        const isOwner = service.owner && service.owner.toString() === decoded.id;
+
+        if (!isDev && !isOwner) return res.status(403).json({ msg: 'Unauthorized' });
+
+        // Update fields
+        const updateData = {
+            ...req.body,
+            name: req.body.title || req.body.name,
+            contact: req.body.phone || req.body.contact
+        };
+
+        const updatedService = await Service.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        res.json(updatedService);
+    } catch (err) { res.status(500).send('Server Error'); }
+});
+
+// ✅ NEW: POST REVIEW ROUTE
+app.post('/api/services/:id/reviews', async (req, res) => {
+    try {
+        const token = req.header('x-auth-token');
+        if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id).select('-password');
+
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        const { rating, comment } = req.body;
+        const service = await Service.findById(req.params.id);
+
+        if (!service) return res.status(404).json({ msg: 'Service not found' });
+
+        const newReview = {
+            user: user.name,
+            rating: Number(rating),
+            comment
+        };
+
+        service.reviews.unshift(newReview);
+        await service.save();
+
+        res.json(service.reviews);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // ✅ CHAT ROUTE
-// ✅ UPDATED CHAT ROUTE
 app.post('/api/chat', async (req, res) => {
     try {
         const { message } = req.body;
         
-        // 1. Check if API Key exists
         if (!process.env.GEMINI_API_KEY) {
             console.error("❌ ERROR: GEMINI_API_KEY is missing from Render Environment!");
             return res.status(500).json({ error: "Server Configuration Error" });
         }
 
-        // 2. Initialize Model inside the route for stability
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Or gemini-1.5-flash
 
         if (!message) return res.status(400).json({ error: "No message provided" });
 
         const prompt = `You are the Service Sync AI for Guwahati. Help the user: ${message}`;
         
-        // 3. Generate Content
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
@@ -180,7 +251,6 @@ app.post('/api/chat', async (req, res) => {
         res.json({ reply: text });
 
     } catch (err) {
-        // This will show up in your Render "Logs" tab
         console.error("Detailed Gemini Error:", err);
         res.status(500).json({ 
             error: "AI Generation Failed", 
@@ -188,6 +258,7 @@ app.post('/api/chat', async (req, res) => {
         });
     }
 });
+
 // --- DELETE SERVICE ---
 app.delete('/api/services/:id', async (req, res) => {
     const token = req.header('x-auth-token');
@@ -205,7 +276,9 @@ app.delete('/api/services/:id', async (req, res) => {
         await Service.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Service deleted' });
     } catch (err) { res.status(500).send('Server Error'); }
-});// ✅ ADMIN PASSWORD RESET ROUTE
+});
+
+// ✅ ADMIN PASSWORD RESET ROUTE
 app.put('/api/users/reset-password', async (req, res) => {
     const { email, newPassword } = req.body;
     const token = req.header('x-auth-token');
@@ -213,7 +286,6 @@ app.put('/api/users/reset-password', async (req, res) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
-        // Only you (Tanmoy) or other devs can do this
         if (decoded.role !== 'developer') {
             return res.status(403).json({ msg: "Only developers can reset passwords" });
         }
@@ -243,10 +315,8 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // --- AUTO-WAKE LOGIC ---
-// ✅ CORRECT KEEP-ALIVE CODE
 const reloadWebsite = async () => {
     try {
-        // 👇 USE YOUR REAL RENDER URL HERE
         await fetch("https://service-sync-website.onrender.com/api/services"); 
         console.log("✅ Auto-Wake: Ping sent");
     } catch (error) {
@@ -259,4 +329,3 @@ setInterval(reloadWebsite, 14 * 60 * 1000); // Ping every 14 mins
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Service Sync Backend running on port ${PORT}`));
-// Force update v1

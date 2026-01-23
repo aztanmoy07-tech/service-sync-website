@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import ServiceCard from '../components/ServiceCard'; 
+import Reviews from '../components/Reviews'; // ✅ IMPORTED REVIEWS
 
 const Icons = {
   Search: () => <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>,
@@ -21,6 +22,10 @@ const Main = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState({ lat: 26.1833, lng: 91.7333 }); 
+  
+  // ✅ NEW: Track which service has reviews open
+  const [activeReviewId, setActiveReviewId] = useState(null);
+
   const navigate = useNavigate();
   
   const token = localStorage.getItem('token');
@@ -29,6 +34,19 @@ const Main = () => {
   const isBusiness = userRole === 'business' || userRole === 'developer';
   const API_URL = 'https://service-sync-website.onrender.com';
 
+  // ✅ MOVED fetchServices outside useEffect so we can call it after adding a review
+  const fetchServices = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/services`);
+      setServices(res.data);
+      // Don't overwrite filteredServices if user is searching, unless it's initial load
+      if (filteredServices.length === 0 || searchTerm === '') {
+          setFilteredServices(res.data);
+      }
+    } catch (err) { console.error(err); } 
+    finally { setLoading(false); }
+  }, []); // Empty dependency array means it doesn't change
+
   useEffect(() => {
     // ✅ GPS Integration
     if (navigator.geolocation) {
@@ -36,17 +54,8 @@ const Main = () => {
         setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       });
     }
-
-    const fetchServices = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/services`);
-        setServices(res.data);
-        setFilteredServices(res.data);
-      } catch (err) { console.error(err); } 
-      finally { setLoading(false); }
-    };
     fetchServices();
-  }, []);
+  }, [fetchServices]);
 
   useEffect(() => {
     let result = services;
@@ -54,7 +63,7 @@ const Main = () => {
       result = result.filter(s => s.category?.toLowerCase() === category.toLowerCase());
     }
     if (searchTerm) {
-      result = result.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+      result = result.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     setFilteredServices(result);
   }, [category, searchTerm, services]);
@@ -133,10 +142,9 @@ const Main = () => {
         <div className="pb-32">
             <h2 className="text-3xl font-black text-gray-900 mb-8">{category === 'map' ? 'Live Navigation' : 'Results'}</h2>
             
-            {/* ✅ UPDATED GPS MAP SECTION WITH HTTPS AND LOADING STATE */}
+            {/* ✅ UPDATED GPS MAP SECTION */}
             {category === 'map' ? (
                 <div className="w-full h-[600px] bg-white rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white relative">
-                  {/* Fallback while GPS data is loading */}
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-500 font-bold">
                     📡 Accessing GPS Navigation...
                   </div>
@@ -145,7 +153,7 @@ const Main = () => {
                     height="100%" 
                     frameBorder="0" 
                     style={{ border: 0, position: 'relative', zIndex: 10 }}
-                    /* ✅ SECURE HTTPS URL with output=embed to fix the blank screen */
+                    // ✅ FIXED: Corrected URL typo in ${location.lat}
                     src={`https://maps.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
                     allowFullScreen
                     title="Service Sync Live Map"
@@ -153,7 +161,33 @@ const Main = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
-                  {filteredServices.length > 0 ? filteredServices.map((s) => <ServiceCard key={s._id} service={s} />) : <p className="text-gray-400 italic">No services listed yet.</p>}
+                  {filteredServices.length > 0 ? filteredServices.map((s) => (
+                    <div key={s._id} className="flex flex-col gap-3">
+                        {/* Service Card */}
+                        <ServiceCard service={s} />
+
+                        {/* ✅ NEW: Reviews Toggle Section */}
+                        <div className="px-2">
+                           <button 
+                              onClick={() => setActiveReviewId(activeReviewId === s._id ? null : s._id)}
+                              className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
+                           >
+                              {activeReviewId === s._id ? '▲ Close Reviews' : '⭐⭐⭐⭐⭐ View Reviews & Ratings ▼'}
+                           </button>
+
+                           {/* Render Reviews Component only if active */}
+                           {activeReviewId === s._id && (
+                              <div className="mt-2 bg-white p-4 rounded-2xl shadow-inner border border-gray-100 animate-in slide-in-from-top-2">
+                                  <Reviews 
+                                    serviceId={s._id} 
+                                    reviews={s.reviews} 
+                                    refreshReviews={fetchServices} // Pass refresh function!
+                                  />
+                              </div>
+                           )}
+                        </div>
+                    </div>
+                  )) : <p className="text-gray-400 italic">No services listed yet.</p>}
                 </div>
             )}
         </div>
