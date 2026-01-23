@@ -82,19 +82,40 @@ const getRoleFromEmail = (email) => {
 };
 
 // --- AUTH ROUTES ---
+a// ✅ DEBUG SIGNUP ROUTE
 app.post('/api/signup', async (req, res) => {
+    console.log("📥 Signup Request Received:", req.body); // 👈 THIS LOG IS KEY
+
     const { name, email, password } = req.body;
+
+    // 1. Check for missing data
+    if (!name || !email || !password) {
+        console.log("❌ Missing Fields:", { name, email, password });
+        return res.status(400).json({ msg: "Please enter all fields (name, email, password)" });
+    }
+
     try {
         let user = await User.findOne({ email });
-        if (user) return res.status(400).json({ msg: 'User already exists' });
+        if (user) {
+            console.log("❌ User exists in DB");
+            return res.status(400).json({ msg: 'User already exists' });
+        }
+
         const role = getRoleFromEmail(email);
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
+
         user = new User({ name, email, password: hashedPassword, role });
         await user.save();
+
         const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, process.env.JWT_SECRET);
+        console.log("✅ User Created Successfully");
         res.json({ token, role: user.role });
-    } catch (err) { res.status(500).send('Server Error'); }
+
+    } catch (err) {
+        console.error("❌ SERVER ERROR:", err.message); // This will show the real crash reason
+        res.status(500).send('Server Error');
+    }
 });
 
 app.post('/api/login', async (req, res) => {
