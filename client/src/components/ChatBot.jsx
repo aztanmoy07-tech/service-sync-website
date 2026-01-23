@@ -3,9 +3,11 @@ import axios from 'axios';
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false); // ✅ Toggles window open/close
-  const [messages, setMessages] = useState([
-    { text: "Hello! I'm your Service Sync Assistant. How can I help you today?", isBot: true }
-  ]);
+  
+  // Define initial message separately so we can restore it easily
+  const initialMessage = { text: "Hello! I'm your Service Sync Assistant. How can I help you today?", isBot: true };
+  
+  const [messages, setMessages] = useState([initialMessage]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
@@ -18,6 +20,13 @@ const ChatBot = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
+
+  // ✅ NEW: Function to clear chat history
+  const clearChat = () => {
+    if (window.confirm("Are you sure you want to clear the chat history?")) {
+        setMessages([initialMessage]);
+    }
+  };
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -51,15 +60,30 @@ const ChatBot = () => {
       {/* --- CHAT WINDOW (Only shows if isOpen is true) --- */}
       {isOpen && (
         <div className="w-80 md:w-96 mb-4 shadow-2xl rounded-[2rem] overflow-hidden border border-gray-100 bg-white animate-in slide-in-from-bottom-5 duration-300">
+          
           {/* Header */}
           <div className="bg-gray-900 p-4 text-white flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h3 className="font-black text-xs uppercase tracking-widest">Service Sync AI</h3>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:text-gray-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+            
+            {/* Right Side Controls */}
+            <div className="flex items-center gap-3">
+                {/* ✅ NEW: Trash/Clear Button */}
+                <button 
+                    onClick={clearChat} 
+                    className="text-gray-400 hover:text-red-400 transition-colors"
+                    title="Clear Chat History"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+
+                {/* Close Button */}
+                <button onClick={() => setIsOpen(false)} className="hover:text-gray-400 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
           </div>
 
           {/* Messages Area */}
