@@ -80,9 +80,8 @@ const getRoleFromEmail = (email) => {
     if (lowerEmail.endsWith('@business.com')) return 'business';
     return 'user';
 };
-
-// --- AUTH ROUTES ---
-a// ✅ DEBUG SIGNUP ROUTE
+    // ✅ DEBUG SIGNUP ROUTE
+    
 app.post('/api/signup', async (req, res) => {
     console.log("📥 Signup Request Received:", req.body); // 👈 THIS LOG IS KEY
 
