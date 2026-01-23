@@ -16,20 +16,24 @@ const Login = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      // ✅ FIXED: Changed route from '/api/auth/login' to '/api/login' to match server.js
       const res = await axios.post(`${API_URL}/api/login`, formData);
       
+      // ✅ 1. Save Token AND Role
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('role', res.data.role); // Important: Save role so Navbar can see it!
       
-      // Redirect based on role
-      if(res.data.user && res.data.user.role === 'developer') {
+      // ✅ 2. Corrected Redirection Logic
+      // We look at res.data.role directly because that is what your server sends
+      if(res.data.role === 'developer') {
           navigate('/dev');
+      } else if (res.data.role === 'business') {
+          navigate('/business'); // Just in case you have this
       } else {
           navigate('/'); 
       }
+
     } catch (err) {
       console.error("Login Error:", err);
-      // More helpful error message
       const errorMsg = err.response?.data?.msg || 'Invalid Credentials. Please try again.';
       alert(errorMsg);
     }
